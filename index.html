@@ -1,0 +1,98 @@
+<!-- IT Equipment Borrowing System — multi-file web app -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mister Babadook — IT Equipment Borrowing System</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cinzel:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<link rel="stylesheet" href="css/styles.css">
+
+<!-- ============================ AUTH ============================ -->
+<div id="auth">
+  <div class="auth-card">
+    <div class="auth-side">
+      <div class="logo">
+        <div class="mark" style="width:36px;height:36px;border-radius:10px;background:linear-gradient(150deg,#7a0d14,#3a0408);display:grid;place-items:center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v15.5"/><path d="M6.5 19H19a2 2 0 0 1 2 2H7a2 2 0 0 1-1.5-3.3Z"/><circle cx="13" cy="9" r="1.4" fill="#fff" stroke="none"/><path d="M11 14c.7-1 3.3-1 4 0"/></svg>
+        </div>
+        <div><b style="font-size:18px">Mister Babadook</b></div>
+      </div>
+      <h2>If it's in a word, or it's in a look... you can't get rid of the Babadook.</h2>
+      <p>A borrowing system for IT equipment — built for agencies, schools, and teams that need accountable, auditable asset handling. Once an item is checked out, it knows.</p>
+      <div class="auth-points">
+        <div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg> Request, approve, check-out, and check-in in one flow</div>
+        <div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg> QR codes on every item for fast scanning</div>
+        <div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg> Overdue tracking, audit logs, and exportable reports</div>
+      </div>
+    </div>
+    <div class="auth-form">
+      <h1>Sign in</h1>
+      <p class="sub">Use a demo account, or enter the credentials below.</p>
+      <div class="field"><label>Email</label><input id="loginEmail" type="email" placeholder="you@agency.gov" value="admin@babadook.gov"></div>
+      <div class="field"><label>Password</label><input id="loginPass" type="password" placeholder="••••••••" value="demo"></div>
+      <button class="btn btn-primary btn-block" onclick="App.login()">Sign in</button>
+      <div class="divider">or use a demo role</div>
+      <div class="demo-row">
+        <button class="btn btn-ghost" onclick="App.demo('admin')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V5l-8-3z"/></svg>
+          Administrator</button>
+        <button class="btn btn-ghost" onclick="App.demo('employee')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+          Employee</button>
+      </div>
+      <p class="hint" style="margin-top:16px">Demo logins: <b>admin@babadook.gov</b> / <b>jordan@babadook.gov</b> — password <b>demo</b></p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ APP ============================ -->
+<div id="app">
+  <div class="scrim" onclick="App.toggleNav(false)"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="mark"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v15.5"/><path d="M6.5 19H19a2 2 0 0 1 2 2H7a2 2 0 0 1-1.5-3.3Z"/><circle cx="13" cy="9" r="1.4" fill="#fff" stroke="none"/><path d="M11 14c.7-1 3.3-1 4 0"/></svg></div>
+      <div><b>Mister Babadook</b><small>IT Borrowing</small></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <div class="side-user">
+        <div class="avatar" id="sideAvatar"></div>
+        <div class="meta"><b id="sideName"></b><span id="sideRole"></span></div>
+        <button class="icon-btn" style="width:34px;height:34px;margin-left:auto" title="Sign out" onclick="App.logout()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-btn" onclick="App.toggleNav(true)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <div class="page-title"><h1 id="pageTitle">Dashboard</h1><p id="pageSub"></p></div>
+      <div class="spacer"></div>
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+        <input id="globalSearch" placeholder="Search equipment, tags, serials…" oninput="App.globalSearch(this.value)">
+      </div>
+      <button class="icon-btn" id="bell" onclick="App.toggleNotif()">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span class="dot" id="bellDot" style="display:none"></span>
+      </button>
+    </header>
+    <div class="content" id="view"></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="js/utils.js"></script>
+<script src="js/constants.js"></script>
+<script src="js/data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
