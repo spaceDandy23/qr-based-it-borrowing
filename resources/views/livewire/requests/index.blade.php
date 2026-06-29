@@ -24,7 +24,7 @@
                     <td><div class="row-main">{{ $r->user->name }}</div><div class="row-sub">{{ $r->user->email }}</div></td>
                     <td style="max-width:240px">
                         <div class="row-sub" style="color:var(--ink-2)">{{ $r->purpose }}</div>
-                        @if ($r->extension && $r->extension->status === 'Pending')
+                        @if ($r->extension && $r->extension->status === 'Pending' && $r->status == 'Returned')
                             <span class="flag" style="color:var(--warn)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>Extension requested → {{ $r->extension->new_end->format('M j, Y') }}</span>
                         @endif
                         @if ($r->damageReport)
@@ -32,7 +32,7 @@
                         @endif
                     </td>
                     <td><div class="row-sub">{{ $r->start_date->format('M j, Y') }}<br>→ {{ $r->end_date->format('M j, Y') }}</div>@if ($overdue)<span class="pill p-bad" style="margin-top:3px">Overdue</span>@endif</td>
-                    <td><x-status-pill :status="$r->status" /></td>
+                    <td><x-status-pill :status="$r->status"   /></td>
                     <td><div class="actions">
                         @if ($r->status === 'Pending')
                             <button class="btn btn-primary btn-sm" wire:click="approve({{ $r->id }})">Approve</button>
