@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(ls -la)",
-      "Bash(find . -maxdepth 2 -iname \"composer.json\")",
-      "Bash(which php *)"
-    ]
-  }
-}
