@@ -65,9 +65,6 @@
                     <div class="field"><label>Condition</label><select wire:model="condition">
                         @foreach (['Excellent','Good','Fair','Poor'] as $c)<option value="{{ $c }}">{{ $c }}</option>@endforeach
                     </select></div>
-                    <div class="field"><label>Status</label><select wire:model="status">
-                        @foreach (['Available','Reserved','Checked Out','Maintenance','Damaged'] as $s)<option value="{{ $s }}">{{ $s }}</option>@endforeach
-                    </select></div>
                     <div class="field"><label>Purchase date</label><input type="date" wire:model="purchaseDate"></div>
                     <div class="field"><label>Location</label><input wire:model="location" placeholder="Storage Room A"></div>
                     <div class="field full"><label>Image URL (optional)</label><input wire:model="image" placeholder="https://… (leave blank for a category icon)"></div>

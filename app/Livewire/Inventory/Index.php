@@ -24,13 +24,19 @@ class Index extends Component
     public ?int $deletingId = null;
 
     public string $name = '';
+
     public string $assetTag = '';
+
     public string $category = 'Laptop';
+
     public string $serial = '';
+
     public string $condition = 'Good';
-    public string $status = 'Available';
+
     public string $location = '';
+
     public string $purchaseDate = '';
+
     public string $image = '';
 
     public function mount()
@@ -52,7 +58,6 @@ class Index extends Component
             $this->category = $e->category;
             $this->serial = $e->serial;
             $this->condition = $e->condition;
-            $this->status = $e->status;
             $this->location = (string) $e->location;
             $this->purchaseDate = optional($e->purchase_date)->toDateString() ?? '';
             $this->image = (string) $e->image;
@@ -60,7 +65,6 @@ class Index extends Component
             $this->reset(['name', 'assetTag', 'serial', 'location', 'image']);
             $this->category = 'Laptop';
             $this->condition = 'Good';
-            $this->status = 'Available';
             $this->purchaseDate = now()->toDateString();
         }
 
@@ -79,8 +83,7 @@ class Index extends Component
             'assetTag' => ['required', 'string', 'max:60', Rule::unique('equipment', 'asset_tag')->ignore($this->editingId)],
             'category' => 'required|string',
             'serial' => ['nullable', 'string', 'max:120', Rule::unique('equipment', 'serial')->ignore($this->editingId)],
-            'condition' => 'required|string',
-            'status' => 'required|string',
+            'condition' => ['required', 'string', Rule::in(['Excellent', 'Good', 'Fair', 'Poor'])],
             'location' => 'nullable|string|max:120',
             'purchaseDate' => 'nullable|date',
             'image' => 'nullable|string|max:500',
@@ -92,7 +95,6 @@ class Index extends Component
             'category' => $this->category,
             'serial' => $this->serial,
             'condition' => $this->condition,
-            'status' => $this->status,
             'location' => $this->location,
             'purchase_date' => $this->purchaseDate ?: null,
             'image' => $this->image,
@@ -104,7 +106,7 @@ class Index extends Component
             AuditLog::record('Equipment updated', "{$this->name} ({$this->assetTag}) details edited.", Auth::user());
             session()->flash('toast', ['Equipment updated.', 'ok']);
         } else {
-            Equipment::create($data);
+            Equipment::create($data + ['status' => 'Available']);
             AuditLog::record('Equipment added', "{$this->name} ({$this->assetTag}) added to inventory.", Auth::user());
             session()->flash('toast', ['Equipment added.', 'ok']);
         }
@@ -173,6 +175,12 @@ class Index extends Component
     {
         $equipment = Equipment::findOrFail($id);
         Gate::authorize('manageMaintenance', $equipment);
+
+        if ($equipment->status !== 'Maintenance') {
+            session()->flash('toast', ['Only equipment under maintenance can be returned to service.', 'err']);
+
+            return;
+        }
 
         $equipment->update(['status' => 'Available']);
         AuditLog::record('Maintenance cleared', "{$equipment->name} returned to available pool.", Auth::user());

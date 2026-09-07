@@ -8,8 +8,11 @@ use App\Models\Extension;
 use App\Models\Request as LoanRequest;
 use App\Models\User;
 use App\Notifications\SystemAlert;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -48,6 +51,12 @@ class Index extends Component
         $request = LoanRequest::with('equipment')->findOrFail($this->extendingId);
         Gate::authorize('requestExtension', $request);
 
+        if (! Carbon::parse($this->extensionNewEnd)->gt($request->end_date)) {
+            $this->addError('extensionNewEnd', 'The new return date must be after the current due date.');
+
+            return;
+        }
+
         Extension::create([
             'request_id' => $request->id,
             'new_end' => $this->extensionNewEnd,
@@ -57,7 +66,7 @@ class Index extends Component
         ]);
 
         $user = Auth::user();
-        AuditLog::record('Extension requested', "{$user->name} requested extension for {$request->equipment->name} to ".\Carbon\Carbon::parse($this->extensionNewEnd)->format('M j, Y').'.', $user);
+        AuditLog::record('Extension requested', "{$user->name} requested extension for {$request->equipment->name} to ".Carbon::parse($this->extensionNewEnd)->format('M j, Y').'.', $user);
 
         foreach (User::where('role', 'admin')->get() as $admin) {
             $admin->notify(new SystemAlert("{$user->name} requested an extension for {$request->equipment->name}.", 'info'));
@@ -81,6 +90,7 @@ class Index extends Component
     {
         $this->validate([
             'damageDescription' => 'required|string|max:1000',
+            'damageSeverity' => ['required', 'string', Rule::in(['Minor', 'Moderate', 'Severe'])],
         ]);
 
         $request = LoanRequest::with('equipment')->findOrFail($this->reportingDamageId);
@@ -94,7 +104,7 @@ class Index extends Component
         ]);
 
         $user = Auth::user();
-        $shortDesc = \Illuminate\Support\Str::limit($this->damageDescription, 60);
+        $shortDesc = Str::limit($this->damageDescription, 60);
         AuditLog::record('Damage reported', "{$user->name} reported damage on {$request->equipment->name}: {$shortDesc}", $user);
 
         foreach (User::where('role', 'admin')->get() as $admin) {

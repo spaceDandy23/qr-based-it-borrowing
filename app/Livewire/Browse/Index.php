@@ -2,10 +2,12 @@
 
 namespace App\Livewire\Browse;
 
+use App\Exceptions\BorrowingStateException;
 use App\Models\AuditLog;
 use App\Models\Equipment;
-use App\Models\Request as LoanRequest;
+use App\Models\User;
 use App\Notifications\SystemAlert;
+use App\Services\BorrowingService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -50,21 +52,25 @@ class Index extends Component
             'endDate' => 'required|date|after_or_equal:startDate',
         ]);
 
-        $equipment = Equipment::findOrFail($this->borrowingId);
         $user = Auth::user();
 
-        LoanRequest::create([
-            'equipment_id' => $equipment->id,
-            'user_id' => $user->id,
-            'purpose' => $this->purpose,
-            'start_date' => $this->startDate,
-            'end_date' => $this->endDate,
-            'status' => 'Pending',
-        ]);
+        try {
+            $request = app(BorrowingService::class)->createRequest($user, $this->borrowingId, [
+                'purpose' => $this->purpose,
+                'start_date' => $this->startDate,
+                'end_date' => $this->endDate,
+            ]);
+        } catch (BorrowingStateException $e) {
+            session()->flash('toast', [$e->getMessage(), 'err']);
+
+            return;
+        }
+
+        $equipment = $request->equipment;
 
         AuditLog::record('Request submitted', "{$user->name} requested {$equipment->name} ({$equipment->asset_tag}).", $user);
 
-        foreach (\App\Models\User::where('role', 'admin')->get() as $admin) {
+        foreach (User::where('role', 'admin')->get() as $admin) {
             $admin->notify(new SystemAlert("New borrowing request from {$user->name} for {$equipment->name}.", 'info'));
         }
 

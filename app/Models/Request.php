@@ -22,6 +22,7 @@ class Request extends Model
         'checked_out_at',
         'returned_at',
         'return_condition',
+        'return_notes',
         'reject_reason',
     ];
 
