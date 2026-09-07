@@ -62,6 +62,21 @@ class BorrowingServiceTest extends TestCase
         $service->createRequest($user, $equipment->id, $this->requestAttributes());
     }
 
+    public function test_weekend_due_dates_are_normalized_to_the_following_monday(): void
+    {
+        $request = app(BorrowingService::class)->createRequest(
+            $this->user('employee'),
+            $this->equipment()->id,
+            [
+                'purpose' => 'Weekend request.',
+                'start_date' => '2026-09-04',
+                'end_date' => '2026-09-05',
+            ]
+        );
+
+        $this->assertSame('2026-09-07', $request->end_date->toDateString());
+    }
+
     public function test_approval_requires_pending_request_and_available_equipment(): void
     {
         $service = app(BorrowingService::class);

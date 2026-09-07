@@ -4,7 +4,7 @@
         <tbody>
         @foreach ($logs as $l)
             <tr wire:key="log-{{ $l->id }}">
-                <td class="row-sub">{{ $l->created_at->format('M j, Y g:i A') }}</td>
+                <td class="row-sub">{{ $l->created_at->timezone('Asia/Manila')->format('M j, Y g:i A') }}</td>
                 <td><div style="display:flex;align-items:center;gap:8px">
                     <div class="avatar" style="width:24px;height:24px;font-size:10px;background:{{ \App\Support\Ui::avatarColor($l->actor_name) }}">{{ \App\Support\Ui::initials($l->actor_name) }}</div>
                     {{ $l->actor_name }}

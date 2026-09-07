@@ -1,7 +1,9 @@
 <?php
 
-use App\Livewire\Auth\Login;
+use App\Http\Controllers\ExportController;
+use App\Http\Controllers\SsoController;
 use App\Livewire\Audit\Index as AuditIndex;
+use App\Livewire\Auth\Login;
 use App\Livewire\Browse\Index as BrowseIndex;
 use App\Livewire\Dashboard;
 use App\Livewire\History\Index as HistoryIndex;
@@ -14,23 +16,21 @@ use App\Livewire\Users\Index as UsersIndex;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-
 Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');
 
     // FDCP SSO OAuth2 (Authorization Code + PKCE)
-    Route::get('/auth/redirect', [App\Http\Controllers\SsoController::class, 'redirect'])->name('sso.redirect');
+    Route::get('/auth/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
 });
 
-Route::get('/auth/callback', [App\Http\Controllers\SsoController::class, 'callback'])->name('sso.callback');
-
+Route::get('/auth/callback', [SsoController::class, 'callback'])->name('sso.callback');
 
 Route::post('/logout', function () {
     Auth::logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
 
-    return redirect()->route('login');
+    return redirect()->away(config('services.fdcp_accounts.logout_url'));
 })->middleware('auth')->name('logout');
 
 Route::middleware('auth')->group(function () {
@@ -42,7 +42,6 @@ Route::middleware('auth')->group(function () {
     })->name('home');
 });
 
-
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
     Route::get('/inventory', InventoryIndex::class)->name('inventory');
@@ -51,8 +50,8 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/reports', ReportsIndex::class)->name('reports');
     Route::get('/audit', AuditIndex::class)->name('audit');
     Route::get('/users', UsersIndex::class)->name('users');
-    Route::get('/equipment/export', [App\Http\Controllers\ExportController::class, 'equipment'])->name('export.equipment');
-    Route::get('/requests/export', [App\Http\Controllers\ExportController::class, 'requests'])->name('export.requests');
+    Route::get('/equipment/export', [ExportController::class, 'equipment'])->name('export.equipment');
+    Route::get('/requests/export', [ExportController::class, 'requests'])->name('export.requests');
 });
 
 Route::middleware(['auth', 'role:employee'])->group(function () {

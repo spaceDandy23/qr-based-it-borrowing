@@ -30,6 +30,10 @@
                         @if ($r->damageReport)
                             <span class="flag"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Damage reported</span>
                         @endif
+                        @if ($r->status === 'Returned')
+                            <div class="row-sub" style="margin-top:6px">Return condition: {{ $r->return_condition }}@if ($r->returned_at) · Returned {{ $r->returned_at->timezone('Asia/Manila')->format('M j, Y g:i A') }}@endif</div>
+                            @if ($r->return_notes)<div class="row-sub" style="margin-top:3px">Return notes: {{ $r->return_notes }}</div>@endif
+                        @endif
                     </td>
                     <td><div class="row-sub">{{ $r->start_date->format('M j, Y') }}<br>→ {{ $r->end_date->format('M j, Y') }}</div>@if ($overdue)<span class="pill p-bad" style="margin-top:3px">Overdue</span>@endif</td>
                     <td><x-status-pill :status="$r->status" /></td>

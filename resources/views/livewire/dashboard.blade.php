@@ -45,7 +45,7 @@
                     <div class="list-row">
                         <div class="ico" style="background:var(--surface-2);color:var(--ink-2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></div>
                         <div class="t"><b>{{ $l->action }}</b><span>{{ $l->detail }}</span></div>
-                        <small style="color:var(--ink-3);white-space:nowrap">{{ $l->created_at->format('M j, g:i A') }}</small>
+                        <small style="color:var(--ink-3);white-space:nowrap">{{ $l->created_at->timezone('Asia/Manila')->format('M j, g:i A') }}</small>
                     </div>
                 @endforeach
             </div>

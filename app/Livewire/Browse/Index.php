@@ -8,6 +8,7 @@ use App\Models\Equipment;
 use App\Models\User;
 use App\Notifications\SystemAlert;
 use App\Services\BorrowingService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -33,7 +34,7 @@ class Index extends Component
     {
         $this->q = request()->query('q', '');
         $this->startDate = now()->toDateString();
-        $this->endDate = now()->addDays(7)->toDateString();
+        $this->endDate = $this->defaultEndDate();
     }
 
     public function openBorrow(int $id): void
@@ -41,7 +42,7 @@ class Index extends Component
         $this->borrowingId = $id;
         $this->purpose = '';
         $this->startDate = now()->toDateString();
-        $this->endDate = now()->addDays(7)->toDateString();
+        $this->endDate = $this->defaultEndDate();
     }
 
     public function submitBorrow(): void
@@ -95,5 +96,12 @@ class Index extends Component
             'equipment' => $equipment,
             'categories' => $categories,
         ]);
+    }
+
+    private function defaultEndDate(): string
+    {
+        $date = now();
+
+        return $date->isWeekend() ? $date->next(Carbon::MONDAY)->toDateString() : $date->toDateString();
     }
 }

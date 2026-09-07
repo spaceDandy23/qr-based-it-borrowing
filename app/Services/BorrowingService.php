@@ -7,6 +7,7 @@ use App\Models\Equipment;
 use App\Models\Extension;
 use App\Models\Request as LoanRequest;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class BorrowingService
@@ -35,12 +36,17 @@ class BorrowingService
                 throw new BorrowingStateException('You already have an active request for this equipment.');
             }
 
+            $endDate = Carbon::parse($attributes['end_date']);
+            if ($endDate->isWeekend()) {
+                $endDate->next(Carbon::MONDAY);
+            }
+
             return LoanRequest::create([
                 'equipment_id' => $equipment->id,
                 'user_id' => $user->id,
                 'purpose' => $attributes['purpose'],
                 'start_date' => $attributes['start_date'],
-                'end_date' => $attributes['end_date'],
+                'end_date' => $endDate->toDateString(),
                 'status' => 'Pending',
             ])->load('equipment');
         });

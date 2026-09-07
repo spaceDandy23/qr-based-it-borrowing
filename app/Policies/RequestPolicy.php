@@ -19,17 +19,17 @@ class RequestPolicy
 
     public function decide(User $user, LoanRequest $request): bool
     {
-        return $user->isAdmin() && $request->status === 'Pending';
+        return $user->isAdmin();
     }
 
     public function checkOut(User $user, LoanRequest $request): bool
     {
-        return $user->isAdmin() && $request->status === 'Approved';
+        return $user->isAdmin();
     }
 
     public function checkIn(User $user, LoanRequest $request): bool
     {
-        return $user->isAdmin() && $request->status === 'Checked Out';
+        return $user->isAdmin();
     }
 
     public function requestExtension(User $user, LoanRequest $request): bool
@@ -53,6 +53,6 @@ class RequestPolicy
 
     public function resolveExtension(User $user, LoanRequest $request): bool
     {
-        return $user->isAdmin() && $request->status === 'Checked Out';
+        return $user->isAdmin();
     }
 }
