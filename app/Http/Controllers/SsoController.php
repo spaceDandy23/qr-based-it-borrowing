@@ -3,17 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Http;
 
 class SsoController extends Controller
 {
     private const SESSION_CODE_VERIFIER = 'fdcp_sso.code_verifier';
+
     private const SESSION_STATE = 'fdcp_sso.state';
 
     public function redirect(Request $request): RedirectResponse
@@ -107,7 +108,6 @@ class SsoController extends Controller
             if (! $tokenResponse->ok()) {
                 Log::error('SSO token exchange failed.', [
                     'status' => $tokenResponse->status(),
-                    'body' => $tokenResponse->body(),
                 ]);
 
                 return $this->failLogin($request, 'SSO login failed.');
@@ -118,7 +118,7 @@ class SsoController extends Controller
 
             if (! is_string($accessToken) || $accessToken === '') {
                 Log::error('SSO token exchange returned no access_token.', [
-                    'body' => $tokenData,
+                    'status' => $tokenResponse->status(),
                 ]);
 
                 return $this->failLogin($request, 'SSO login failed.');
@@ -139,21 +139,29 @@ class SsoController extends Controller
             if (! $userinfoResponse->ok()) {
                 Log::error('SSO userinfo request failed.', [
                     'status' => $userinfoResponse->status(),
-                    'body' => $userinfoResponse->body(),
                 ]);
 
                 return $this->failLogin($request, 'SSO login failed.');
             }
 
             $userinfo = $userinfoResponse->json();
+            $applicationRole = $this->resolveApplicationRole(
+                is_array($userinfo) ? $userinfo : []
+            );
+
+            if ($applicationRole['role'] === null) {
+                Log::warning('SSO access denied.', [
+                    'reason' => $applicationRole['reason'],
+                ]);
+
+                return $this->failLogin($request, 'Your account does not have access to this application.');
+            }
 
             $email = data_get($userinfo, 'email');
             $name = data_get($userinfo, 'name') ?? data_get($userinfo, 'preferred_username') ?? $email;
 
             if (! is_string($email) || $email === '') {
-                Log::error('SSO userinfo missing email.', [
-                    'body' => $userinfo,
-                ]);
+                Log::error('SSO userinfo missing email.');
 
                 return $this->failLogin($request, 'SSO login failed: email not provided by SSO.');
             }
@@ -165,24 +173,29 @@ class SsoController extends Controller
                     'name' => is_string($name) && $name !== '' ? $name : 'SSO User',
                     'email' => $email,
                     'password' => Str::random(64),
-                    'role' => 'employee',
+                    'role' => $applicationRole['role'],
                 ]);
             } else {
-                // Keep local password/role. But refresh basic profile fields.
+                // SSO is the source of truth for the application's role and basic profile fields.
                 $user->fill([
                     'name' => is_string($name) && $name !== '' ? $name : $user->name,
                     'email' => $email,
+                    'role' => $applicationRole['role'],
                 ])->save();
             }
 
             Auth::login($user);
             $request->session()->regenerate();
 
-            Log::info('SSO login successful. SSO userinfo response received.', [
-                'userinfo' => $userinfo,
+            $ssoSubject = data_get($userinfo, 'sub');
+
+            Log::info('SSO login successful.', [
+                'user_id' => $user->id,
+                'role' => $applicationRole['role'],
+                'sso_subject' => is_string($ssoSubject) ? $ssoSubject : null,
             ]);
 
-            return redirect()->intended(route('home'));
+            return redirect()->route('home');
         } catch (\Throwable $e) {
             Log::error('SSO login failed (uncaught error).', [
                 'message' => $e->getMessage(),
@@ -199,6 +212,35 @@ class SsoController extends Controller
         return redirect()->route('login');
     }
 
+    /**
+     * @return array{role: 'admin'|'employee'|null, reason: string|null}
+     */
+    private function resolveApplicationRole(array $userinfo): array
+    {
+        if (data_get($userinfo, 'is_active') !== true) {
+            return ['role' => null, 'reason' => 'inactive_account'];
+        }
+
+        $appAccess = data_get($userinfo, 'apps.it_qr_borrowing');
+        if (! is_array($appAccess)) {
+            return ['role' => null, 'reason' => 'missing_app_access'];
+        }
+
+        $ssoRole = data_get($appAccess, 'role');
+        if (! is_string($ssoRole) || trim($ssoRole) === '') {
+            return ['role' => null, 'reason' => 'unsupported_role'];
+        }
+
+        $roleMap = [
+            'admin' => 'admin',
+            'user' => 'employee',
+        ];
+
+        return [
+            'role' => $roleMap[$ssoRole] ?? null,
+            'reason' => array_key_exists($ssoRole, $roleMap) ? null : 'unsupported_role',
+        ];
+    }
 
     private function resolveSsoConfig(): array
     {
@@ -250,6 +292,7 @@ class SsoController extends Controller
     private function codeChallengeS256(string $codeVerifier): string
     {
         $hash = hash('sha256', $codeVerifier, true);
+
         return $this->base64UrlEncode($hash);
     }
 
@@ -258,4 +301,3 @@ class SsoController extends Controller
         return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 }
-
