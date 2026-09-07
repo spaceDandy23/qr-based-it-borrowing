@@ -14,9 +14,16 @@ use App\Livewire\Users\Index as UsersIndex;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');
+
+    // FDCP SSO OAuth2 (Authorization Code + PKCE)
+    Route::get('/auth/redirect', [App\Http\Controllers\SsoController::class, 'redirect'])->name('sso.redirect');
 });
+
+Route::get('/auth/callback', [App\Http\Controllers\SsoController::class, 'callback'])->name('sso.callback');
+
 
 Route::post('/logout', function () {
     Auth::logout();
@@ -28,11 +35,13 @@ Route::post('/logout', function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/', function () {
-        return Auth::user()->isAdmin()
+        // Keep existing behavior, but avoid PHPStan/IDE false positives.
+        return Auth::user()->role === 'admin'
             ? redirect()->route('dashboard')
             : redirect()->route('browse');
     })->name('home');
 });
+
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');

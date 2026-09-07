@@ -32,7 +32,8 @@
                         @endif
                     </td>
                     <td><div class="row-sub">{{ $r->start_date->format('M j, Y') }}<br>→ {{ $r->end_date->format('M j, Y') }}</div>@if ($overdue)<span class="pill p-bad" style="margin-top:3px">Overdue</span>@endif</td>
-                    <td><x-status-pill :status="$r->status"   /></td>
+                    <td><x-status-pill :status="$r->status" /></td>
+
                     <td><div class="actions">
                         @if ($r->status === 'Pending')
                             <button class="btn btn-primary btn-sm" wire:click="approve({{ $r->id }})">Approve</button>

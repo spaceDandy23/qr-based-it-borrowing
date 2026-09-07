@@ -17,20 +17,42 @@
     </div>
     <div class="auth-form">
       <h1>Sign in</h1>
-      <p class="sub">Enter your credentials below.</p>
+      <p class="sub">Use your FDCP account to continue.</p>
 
-      <form wire:submit="login">
-        <div class="field">
-          <label>Email</label>
-          <input type="email" wire:model="email" placeholder="you@agency.gov">
-          @error('email') <p class="hint" style="color:var(--bad)">{{ $message }}</p> @enderror
+      @if (session('sso_error'))
+        <div class="alert alert-danger" role="alert" style="margin-bottom: 16px;">
+          {{ session('sso_error') }}
         </div>
-        <div class="field">
-          <label>Password</label>
-          <input type="password" wire:model="password" placeholder="••••••••">
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+      @endif
+
+      <form aria-label="FDCP Single Sign-On sign-in">
+        <a href="{{ route('sso.redirect') }}" class="btn btn-primary btn-block fdcp-sso-btn" role="button">
+
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-5"/>
+          </svg>
+          <span>Sign in with FDCP SSO</span>
+        </a>
       </form>
+
+      <p class="fdcp-sso-redirect">
+        You will be redirected to the FDCP Single Sign-On portal. If you're already signed in, you'll be logged in automatically.
+      </p>
+
+      <div class="fdcp-divider" role="separator" aria-label="Secure Authentication">
+        <span>Secure Authentication</span>
+      </div>
+
+      <div class="fdcp-security-note">
+        <span class="fdcp-lock" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </span>
+        <p>Authentication is handled securely by FDCP Single Sign-On.</p>
+      </div>
     </div>
   </div>
 </div>

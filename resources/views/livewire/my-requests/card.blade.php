@@ -12,7 +12,8 @@
             @if ($r->reject_reason)
                 <div class="req-msg" style="margin-top:8px">Reason: {{ $r->reject_reason }}</div>
             @endif
-            @if ($r->extension && ($r->extension->status === 'Pending' || r) && $r->status !== 'Returned')
+            @if ($r->extension && $r->extension->status === 'Pending' && $r->status !== 'Returned')
+
                 <div class="hint" style="color:var(--warn);margin-top:6px">Extension to {{ $r->extension->new_end->format('M j, Y') }} pending review.</div>
             @endif
         </div>

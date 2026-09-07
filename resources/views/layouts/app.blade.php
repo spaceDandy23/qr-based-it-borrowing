@@ -44,11 +44,14 @@
     </nav>
     <div class="side-foot">
       <div class="side-user">
-        <div class="avatar" style="background:{{ \App\Support\Ui::avatarColor(auth()->user()->name) }}">
-          {{ \App\Support\Ui::initials(auth()->user()->name) }}
+        @php($u = auth()->user())
+        <div class="avatar" style="background:{{ \App\Support\Ui::avatarColor($u?->name ?? '') }}">
+          {{ \App\Support\Ui::initials($u?->name ?? '') }}
         </div>
-        <div class="meta"><b>{{ auth()->user()->name }}</b><span>{{ ucfirst(auth()->user()->role) }}</span></div>
+        <div class="meta"><b>{{ $u?->name ?? '' }}</b><span>{{ $u?->role ? ucfirst($u->role) : '' }}</span></div>
         <form method="POST" action="{{ route('logout') }}">
+
+
           @csrf
           <button class="icon-btn" type="submit" style="width:34px;height:34px;margin-left:auto" title="Sign out">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
