@@ -4,6 +4,7 @@ namespace App\Livewire\Requests;
 
 use App\Livewire\Concerns\ManagesRequests;
 use App\Models\Request as LoanRequest;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -19,6 +20,8 @@ class Index extends Component
     public string $rejectReason = '';
 
     public ?int $checkingInId = null;
+
+    public ?int $cancellingId = null;
 
     public string $checkInCondition = 'Good';
 
@@ -43,6 +46,19 @@ class Index extends Component
         $this->checkInNotes = '';
     }
 
+    public function openCancel(int $id): void
+    {
+        $request = LoanRequest::findOrFail($id);
+        Gate::authorize('cancel', $request);
+        $this->cancellingId = $id;
+    }
+
+    public function confirmCancel(): void
+    {
+        $this->cancel($this->cancellingId);
+        $this->cancellingId = null;
+    }
+
     public function confirmCheckIn(): void
     {
         $this->checkIn($this->checkingInId, $this->checkInCondition, $this->checkInNotes);
@@ -64,7 +80,7 @@ class Index extends Component
         return view('livewire.requests.index', [
             'list' => $list,
             'pendingCount' => $counts->get('Pending', 0),
-            'segments' => ['All', 'Pending', 'Approved', 'Checked Out', 'Returned', 'Rejected'],
+            'segments' => ['All', 'Pending', 'Approved', 'Checked Out', 'Returned', 'Rejected', 'Cancelled'],
         ]);
     }
 }

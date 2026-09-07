@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Inventory;
 
+use App\Exceptions\BorrowingStateException;
 use App\Models\AuditLog;
 use App\Models\Equipment;
+use App\Services\EquipmentLifecycleService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -22,6 +24,10 @@ class Index extends Component
     public ?int $detailId = null;
 
     public ?int $deletingId = null;
+
+    public ?int $returningToServiceId = null;
+
+    public string $returnToServiceCondition = 'Good';
 
     public string $name = '';
 
@@ -181,19 +187,41 @@ class Index extends Component
         $equipment = Equipment::findOrFail($id);
         Gate::authorize('manageMaintenance', $equipment);
 
-        if (in_array($equipment->status, ['Checked Out', 'Reserved'])) {
-            session()->flash('toast', ['Item is on loan — check it in first.', 'err']);
+        if (! in_array($equipment->status, ['Available', 'Damaged'], true)) {
+            session()->flash('toast', ['This equipment cannot be marked for maintenance from its current status.', 'err']);
 
             return;
         }
 
-        $equipment->update(['status' => 'Maintenance']);
-        AuditLog::record('Maintenance', "{$equipment->name} marked under maintenance.", Auth::user());
+        try {
+            $equipment = app(EquipmentLifecycleService::class)->markMaintenance($id, Auth::user());
+        } catch (BorrowingStateException $e) {
+            session()->flash('toast', [$e->getMessage(), 'err']);
+
+            return;
+        }
         $this->detailId = null;
         session()->flash('toast', ["{$equipment->name} marked for maintenance.", 'info']);
     }
 
-    public function clearMaintenance(int $id): void
+    public function markDamaged(int $id): void
+    {
+        $equipment = Equipment::findOrFail($id);
+        Gate::authorize('manageMaintenance', $equipment);
+
+        try {
+            $equipment = app(EquipmentLifecycleService::class)->markDamaged($id, Auth::user());
+        } catch (BorrowingStateException $e) {
+            session()->flash('toast', [$e->getMessage(), 'err']);
+
+            return;
+        }
+
+        $this->detailId = null;
+        session()->flash('toast', ["{$equipment->name} marked as damaged.", 'info']);
+    }
+
+    public function openReturnToService(int $id): void
     {
         $equipment = Equipment::findOrFail($id);
         Gate::authorize('manageMaintenance', $equipment);
@@ -204,10 +232,34 @@ class Index extends Component
             return;
         }
 
-        $equipment->update(['status' => 'Available']);
-        AuditLog::record('Maintenance cleared', "{$equipment->name} returned to available pool in {$equipment->condition} condition.", Auth::user());
+        $this->returningToServiceId = $id;
+        $this->returnToServiceCondition = $equipment->condition;
+    }
+
+    public function returnToService(): void
+    {
+        $this->validate([
+            'returnToServiceCondition' => ['required', 'string', Rule::in(EquipmentLifecycleService::CONDITIONS)],
+        ]);
+
+        $equipment = Equipment::findOrFail($this->returningToServiceId);
+        Gate::authorize('manageMaintenance', $equipment);
+
+        try {
+            $equipment = app(EquipmentLifecycleService::class)->returnToService(
+                $equipment->id,
+                $this->returnToServiceCondition,
+                Auth::user(),
+            );
+        } catch (BorrowingStateException $e) {
+            session()->flash('toast', [$e->getMessage(), 'err']);
+
+            return;
+        }
+
+        $this->returningToServiceId = null;
         $this->detailId = null;
-        session()->flash('toast', ["{$equipment->name} is available again.", 'ok']);
+        session()->flash('toast', ["{$equipment->name} returned to service in {$equipment->condition} condition.", 'ok']);
     }
 
     private function equipmentChangeDetail(Equipment $equipment, array $changes): string

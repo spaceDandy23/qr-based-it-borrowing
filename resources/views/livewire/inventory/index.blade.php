@@ -113,9 +113,12 @@
                     @if ($detail->status === 'Checked Out')
                         <span class="hint">Checked Out equipment cannot be edited while it is currently borrowed.</span>
                     @elseif ($detail->status === 'Maintenance')
-                        <button class="btn btn-ghost" wire:click="clearMaintenance({{ $detail->id }})">Return to service</button>
-                    @elseif ($detail->status !== 'Maintenance')
+                        <button class="btn btn-ghost" wire:click="openReturnToService({{ $detail->id }})">Return to service</button>
+                    @elseif ($detail->status === 'Damaged')
                         <button class="btn btn-ghost" wire:click="setMaintenance({{ $detail->id }})">Mark maintenance</button>
+                    @elseif ($detail->status === 'Available')
+                        <button class="btn btn-ghost" wire:click="setMaintenance({{ $detail->id }})">Mark maintenance</button>
+                        <button class="btn btn-ghost" wire:click="markDamaged({{ $detail->id }})">Mark damaged</button>
                     @endif
                     @if ($detail->status !== 'Checked Out')
                         <button class="btn btn-primary" wire:click="editFromDetail({{ $detail->id }})">Edit</button>
@@ -129,6 +132,20 @@
                 if (el) new QRCode(el, { text: @json($detail->asset_tag), width: 148, height: 148, correctLevel: QRCode.CorrectLevel.M });
             })();
         </script>
+    @endif
+
+    {{-- Return-to-service modal --}}
+    @if ($returningToServiceId)
+        @php($returning = \App\Models\Equipment::find($returningToServiceId))
+        <div class="modal-bg" wire:click.self="$set('returningToServiceId', null)">
+            <div class="modal">
+                <div class="modal-head"><div><h3>Return to service</h3><p>{{ $returning->name }} will become available.</p></div><button class="x" wire:click="$set('returningToServiceId', null)">✕</button></div>
+                <div class="modal-body"><div class="field"><label>Current / repaired condition</label><select wire:model="returnToServiceCondition">
+                    @foreach (['Excellent','Good','Fair','Poor'] as $c)<option value="{{ $c }}">{{ $c }}</option>@endforeach
+                </select>@error('returnToServiceCondition')<p class="hint" style="color:var(--bad)">{{ $message }}</p>@enderror</div></div>
+                <div class="modal-foot"><button class="btn btn-ghost" wire:click="$set('returningToServiceId', null)">Cancel</button><button class="btn btn-primary" wire:click="returnToService">Return to service</button></div>
+            </div>
+        </div>
     @endif
 
     {{-- Delete confirm modal --}}

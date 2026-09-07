@@ -52,4 +52,15 @@
             </div>
         </div>
     @endif
+
+    @if ($cancellingId)
+        @php($cancel = \App\Models\Request::with('equipment')->find($cancellingId))
+        <div class="modal-bg" wire:click.self="$set('cancellingId', null)">
+            <div class="modal">
+                <div class="modal-head"><div><h3>Cancel borrowing request</h3><p>{{ $cancel->equipment->name }} · <span class="mono">{{ $cancel->equipment->asset_tag }}</span></p></div><button class="x" wire:click="$set('cancellingId', null)">✕</button></div>
+                <div class="modal-body"><p>Cancel this borrowing request? An approved request will release its reserved equipment.</p></div>
+                <div class="modal-foot"><button class="btn btn-ghost" wire:click="$set('cancellingId', null)">Keep request</button><button class="btn btn-danger" wire:click="confirmCancel">Cancel request</button></div>
+            </div>
+        </div>
+    @endif
 </div>

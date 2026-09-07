@@ -6,13 +6,39 @@ use App\Exceptions\BorrowingStateException;
 use App\Models\AuditLog;
 use App\Models\Extension;
 use App\Models\Request as LoanRequest;
+use App\Models\User;
 use App\Notifications\SystemAlert;
 use App\Services\BorrowingService;
+use App\Services\RequestCancellationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
 trait ManagesRequests
 {
+    public function cancel(int $requestId): void
+    {
+        $request = LoanRequest::findOrFail($requestId);
+        Gate::authorize('cancel', $request);
+
+        try {
+            $request = app(RequestCancellationService::class)->cancel($requestId, Auth::user());
+        } catch (BorrowingStateException $e) {
+            $this->flashBorrowingError($e);
+
+            return;
+        }
+
+        if (Auth::id() === $request->user_id) {
+            foreach (User::where('role', 'admin')->get() as $admin) {
+                $admin->notify(new SystemAlert("{$request->user->name} cancelled their request for {$request->equipment->name}.", 'info'));
+            }
+        } else {
+            $request->user->notify(new SystemAlert("Your request for {$request->equipment->name} was cancelled by an administrator.", 'info'));
+        }
+
+        session()->flash('toast', ['Request cancelled.'.($request->status === 'Cancelled' ? ' Equipment availability updated if needed.' : ''), 'info']);
+    }
+
     public function approve(int $requestId): void
     {
         $request = LoanRequest::findOrFail($requestId);

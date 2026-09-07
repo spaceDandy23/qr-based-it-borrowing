@@ -95,10 +95,13 @@ class EquipmentEditingTest extends TestCase
         $admin = $this->admin();
 
         $this->edit($equipment, ['condition' => 'Good']);
+        $this->assertDatabaseHas('equipment', ['id' => $equipment->id, 'condition' => 'Good', 'status' => 'Maintenance']);
 
         Livewire::actingAs($admin)
             ->test(Index::class)
-            ->call('clearMaintenance', $equipment->id);
+            ->call('openReturnToService', $equipment->id)
+            ->set('returnToServiceCondition', 'Good')
+            ->call('returnToService');
 
         $this->assertDatabaseHas('equipment', [
             'id' => $equipment->id,

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\MyRequests;
 
+use App\Livewire\Concerns\ManagesRequests;
 use App\Models\AuditLog;
 use App\Models\DamageReport;
 use App\Models\Extension;
@@ -19,6 +20,10 @@ use Livewire\Component;
 #[Layout('layouts.app', ['title' => 'My Requests'])]
 class Index extends Component
 {
+    use ManagesRequests;
+
+    public ?int $cancellingId = null;
+
     public ?int $extendingId = null;
 
     public string $extensionNewEnd = '';
@@ -39,6 +44,20 @@ class Index extends Component
         $this->extendingId = $requestId;
         $this->extensionNewEnd = $request->end_date->copy()->addDays(7)->toDateString();
         $this->extensionReason = '';
+    }
+
+    public function openCancel(int $requestId): void
+    {
+        $request = LoanRequest::findOrFail($requestId);
+        Gate::authorize('cancel', $request);
+
+        $this->cancellingId = $requestId;
+    }
+
+    public function confirmCancel(): void
+    {
+        $this->cancel($this->cancellingId);
+        $this->cancellingId = null;
     }
 
     public function submitExtension(): void
@@ -124,7 +143,7 @@ class Index extends Component
 
         return view('livewire.my-requests.index', [
             'active' => $mine->whereIn('status', ['Pending', 'Approved', 'Checked Out']),
-            'past' => $mine->whereIn('status', ['Returned', 'Rejected']),
+            'past' => $mine->whereIn('status', ['Returned', 'Rejected', 'Cancelled']),
             'hasAny' => $mine->isNotEmpty(),
         ]);
     }

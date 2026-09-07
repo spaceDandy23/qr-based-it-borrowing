@@ -30,6 +30,9 @@
                 @if ($r->status === 'Checked Out' && ! $r->damageReport)
                     <button class="btn btn-ghost btn-sm" wire:click="openDamage({{ $r->id }})">Report damage</button>
                 @endif
+                @if (in_array($r->status, ['Pending', 'Approved'], true))
+                    <button class="btn btn-ghost btn-sm" wire:click="openCancel({{ $r->id }})">Cancel request</button>
+                @endif
             </div>
         </div>
     </div>

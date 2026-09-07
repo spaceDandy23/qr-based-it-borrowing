@@ -42,8 +42,10 @@
                         @if ($r->status === 'Pending')
                             <button class="btn btn-primary btn-sm" wire:click="approve({{ $r->id }})">Approve</button>
                             <button class="btn btn-ghost btn-sm" wire:click="openReject({{ $r->id }})">Reject</button>
+                            <button class="btn btn-ghost btn-sm" wire:click="openCancel({{ $r->id }})">Cancel</button>
                         @elseif ($r->status === 'Approved')
                             <button class="btn btn-primary btn-sm" wire:click="checkOut({{ $r->id }})">Check out</button>
+                            <button class="btn btn-ghost btn-sm" wire:click="openCancel({{ $r->id }})">Cancel</button>
                         @elseif ($r->status === 'Checked Out')
                             <button class="btn btn-primary btn-sm" wire:click="openCheckIn({{ $r->id }})">Check in</button>
                             @if ($r->extension && $r->extension->status === 'Pending')
@@ -55,6 +57,18 @@
             @endforeach
             </tbody>
         </table></div>
+    @endif
+
+    {{-- Cancellation modal --}}
+    @if ($cancellingId)
+        @php($cancel = $list->firstWhere('id', $cancellingId) ?? \App\Models\Request::with('equipment')->find($cancellingId))
+        <div class="modal-bg" wire:click.self="$set('cancellingId', null)">
+            <div class="modal">
+                <div class="modal-head"><div><h3>Cancel request</h3><p>{{ $cancel->equipment->name }} · <span class="mono">{{ $cancel->equipment->asset_tag }}</span></p></div><button class="x" wire:click="$set('cancellingId', null)">✕</button></div>
+                <div class="modal-body"><p>Cancel this borrowing request? An approved request will release its reservation.</p></div>
+                <div class="modal-foot"><button class="btn btn-ghost" wire:click="$set('cancellingId', null)">Keep request</button><button class="btn btn-danger" wire:click="confirmCancel">Cancel request</button></div>
+            </div>
+        </div>
     @endif
 
     {{-- Reject modal --}}

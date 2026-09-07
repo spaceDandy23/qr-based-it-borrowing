@@ -4,7 +4,7 @@
     $map = [
         'Available' => 'p-ok', 'Checked Out' => 'p-info', 'Reserved' => 'p-reserved',
         'Maintenance' => 'p-warn', 'Damaged' => 'p-bad',
-        'Pending' => 'p-warn', 'Approved' => 'p-ok', 'Rejected' => 'p-bad', 'Returned' => 'p-slate',
+        'Pending' => 'p-warn', 'Approved' => 'p-ok', 'Rejected' => 'p-bad', 'Returned' => 'p-slate', 'Cancelled' => 'p-slate',
     ];
     $class = $map[$status] ?? 'p-slate';
 @endphp

@@ -32,6 +32,12 @@ class RequestPolicy
         return $user->isAdmin();
     }
 
+    public function cancel(User $user, LoanRequest $request): bool
+    {
+        return in_array($request->status, ['Pending', 'Approved'], true)
+            && ($user->isAdmin() || $request->user_id === $user->id);
+    }
+
     public function requestExtension(User $user, LoanRequest $request): bool
     {
         return $request->user_id === $user->id
