@@ -19,7 +19,7 @@ class EquipmentPolicy
 
     public function update(User $user, Equipment $equipment): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() && $equipment->status !== 'Checked Out';
     }
 
     public function delete(User $user, Equipment $equipment): bool

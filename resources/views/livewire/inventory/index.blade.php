@@ -36,7 +36,9 @@
                     <td class="row-sub">{{ $e->location }}</td>
                     <td><div class="actions">
                         <button class="icon-btn" style="width:32px;height:32px" title="Details / QR" wire:click="openDetail({{ $e->id }})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg></button>
-                        <button class="icon-btn" style="width:32px;height:32px" title="Edit" wire:click="openForm({{ $e->id }})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+                        @if ($e->status !== 'Checked Out')
+                            <button class="icon-btn" style="width:32px;height:32px" title="Edit" wire:click="openForm({{ $e->id }})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+                        @endif
                         <button class="icon-btn" style="width:32px;height:32px;color:var(--bad)" title="Delete" wire:click="confirmDelete({{ $e->id }})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
                     </div></td>
                 </tr>
@@ -64,7 +66,7 @@
                     <div class="field"><label>Serial number</label><input wire:model="serial" class="mono" placeholder="Serial / IMEI"></div>
                     <div class="field"><label>Condition</label><select wire:model="condition">
                         @foreach (['Excellent','Good','Fair','Poor'] as $c)<option value="{{ $c }}">{{ $c }}</option>@endforeach
-                    </select></div>
+                    </select>@error('condition')<p class="hint" style="color:var(--bad)">{{ $message }}</p>@enderror</div>
                     <div class="field"><label>Purchase date</label><input type="date" wire:model="purchaseDate"></div>
                     <div class="field"><label>Location</label><input wire:model="location" placeholder="Storage Room A"></div>
                     <div class="field full"><label>Image URL (optional)</label><input wire:model="image" placeholder="https://… (leave blank for a category icon)"></div>
@@ -108,12 +110,16 @@
                 </div>
                 <div class="modal-foot">
                     <button class="btn btn-ghost" wire:click="closeDetail">Close</button>
-                    @if ($detail->status !== 'Maintenance')
-                        <button class="btn btn-ghost" wire:click="setMaintenance({{ $detail->id }})">Mark maintenance</button>
-                    @else
+                    @if ($detail->status === 'Checked Out')
+                        <span class="hint">Checked Out equipment cannot be edited while it is currently borrowed.</span>
+                    @elseif ($detail->status === 'Maintenance')
                         <button class="btn btn-ghost" wire:click="clearMaintenance({{ $detail->id }})">Return to service</button>
+                    @elseif ($detail->status !== 'Maintenance')
+                        <button class="btn btn-ghost" wire:click="setMaintenance({{ $detail->id }})">Mark maintenance</button>
                     @endif
-                    <button class="btn btn-primary" wire:click="editFromDetail({{ $detail->id }})">Edit</button>
+                    @if ($detail->status !== 'Checked Out')
+                        <button class="btn btn-primary" wire:click="editFromDetail({{ $detail->id }})">Edit</button>
+                    @endif
                 </div>
             </div>
         </div>

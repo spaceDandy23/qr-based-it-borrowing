@@ -47,6 +47,13 @@ class Index extends Component
     public function openForm(?int $id = null): void
     {
         $e = $id ? Equipment::findOrFail($id) : null;
+
+        if ($e?->status === 'Checked Out') {
+            session()->flash('toast', ['Checked Out equipment cannot be edited while it is currently borrowed.', 'err']);
+
+            return;
+        }
+
         Gate::authorize($id ? 'update' : 'create', $e ?? Equipment::class);
 
         $this->resetValidation();
@@ -73,9 +80,17 @@ class Index extends Component
 
     public function save(): void
     {
+        $equipment = $this->editingId ? Equipment::findOrFail($this->editingId) : null;
+
+        if ($equipment?->status === 'Checked Out') {
+            session()->flash('toast', ['Checked Out equipment cannot be edited while it is currently borrowed.', 'err']);
+
+            return;
+        }
+
         Gate::authorize(
             $this->editingId ? 'update' : 'create',
-            $this->editingId ? Equipment::findOrFail($this->editingId) : Equipment::class
+            $equipment ?? Equipment::class
         );
 
         $this->validate([
@@ -93,18 +108,25 @@ class Index extends Component
             'name' => $this->name,
             'asset_tag' => $this->assetTag,
             'category' => $this->category,
-            'serial' => $this->serial,
+            'serial' => $this->serial ?: null,
             'condition' => $this->condition,
-            'location' => $this->location,
+            'location' => $this->location ?: null,
             'purchase_date' => $this->purchaseDate ?: null,
-            'image' => $this->image,
+            'image' => $this->image ?: null,
         ];
 
         if ($this->editingId) {
-            $equipment = Equipment::findOrFail($this->editingId);
-            $equipment->update($data);
-            AuditLog::record('Equipment updated', "{$this->name} ({$this->assetTag}) details edited.", Auth::user());
-            session()->flash('toast', ['Equipment updated.', 'ok']);
+            $equipment->fill($data);
+            $changes = $equipment->getDirty();
+
+            if ($changes) {
+                $detail = $this->equipmentChangeDetail($equipment, $changes);
+                $equipment->save();
+                AuditLog::record('Equipment updated', $detail, Auth::user());
+                session()->flash('toast', ['Equipment updated.', 'ok']);
+            } else {
+                session()->flash('toast', ['No equipment changes to save.', 'info']);
+            }
         } else {
             Equipment::create($data + ['status' => 'Available']);
             AuditLog::record('Equipment added', "{$this->name} ({$this->assetTag}) added to inventory.", Auth::user());
@@ -183,9 +205,36 @@ class Index extends Component
         }
 
         $equipment->update(['status' => 'Available']);
-        AuditLog::record('Maintenance cleared', "{$equipment->name} returned to available pool.", Auth::user());
+        AuditLog::record('Maintenance cleared', "{$equipment->name} returned to available pool in {$equipment->condition} condition.", Auth::user());
         $this->detailId = null;
         session()->flash('toast', ["{$equipment->name} is available again.", 'ok']);
+    }
+
+    private function equipmentChangeDetail(Equipment $equipment, array $changes): string
+    {
+        $labels = [
+            'asset_tag' => 'Asset tag',
+            'name' => 'Name',
+            'category' => 'Category',
+            'serial' => 'Serial',
+            'condition' => 'Condition',
+            'location' => 'Location',
+            'purchase_date' => 'Purchase date',
+            'image' => 'Image',
+        ];
+
+        $details = collect($changes)->map(function ($newValue, string $field) use ($equipment, $labels) {
+            $oldValue = $equipment->getRawOriginal($field);
+
+            return sprintf(
+                '%s: %s -> %s',
+                $labels[$field] ?? str($field)->headline(),
+                $oldValue ?: '—',
+                $newValue ?: '—',
+            );
+        });
+
+        return "{$equipment->name} ({$equipment->asset_tag}) updated. ".$details->implode('; ');
     }
 
     public function render()
