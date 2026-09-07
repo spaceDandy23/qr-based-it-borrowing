@@ -38,9 +38,9 @@ class SsoControllerTest extends TestCase
         $this->get(route('home'))->assertRedirect(route('dashboard'));
     }
 
-    public function test_sso_user_creates_an_employee_and_redirects_to_the_employee_landing_page(): void
+    public function test_sso_employee_creates_an_employee_and_redirects_to_the_employee_landing_page(): void
     {
-        $this->fakeSso($this->userinfo('user'));
+        $this->fakeSso($this->userinfo('employee'));
 
         $response = $this->ssoCallback();
 
@@ -61,10 +61,10 @@ class SsoControllerTest extends TestCase
         $this->assertSame('admin', $user->fresh()->role);
     }
 
-    public function test_existing_admin_is_downgraded_when_sso_returns_user(): void
+    public function test_existing_admin_is_downgraded_when_sso_returns_employee(): void
     {
         $user = $this->localUser('admin');
-        $this->fakeSso($this->userinfo('user'));
+        $this->fakeSso($this->userinfo('employee'));
 
         $this->ssoCallback()->assertRedirect(route('home'));
 
@@ -84,14 +84,40 @@ class SsoControllerTest extends TestCase
         $this->assertDenied($response, 'missing_app_access');
     }
 
-    public function test_unsupported_it_qr_borrowing_role_denies_login(): void
+    public function test_sso_user_role_is_rejected_as_unsupported(): void
     {
         Log::spy();
-        $this->fakeSso($this->userinfo('it_staff'));
+        $this->fakeSso($this->userinfo('user'));
 
         $response = $this->ssoCallback();
 
         $this->assertDenied($response, 'unsupported_role');
+    }
+
+    public function test_other_unsupported_sso_roles_are_rejected(): void
+    {
+        foreach (['it_staff', 'superadmin', 'manager', '', null] as $role) {
+            $this->fakeSso($this->userinfo($role));
+
+            $response = $this->ssoCallback();
+
+            $response->assertRedirect(route('login'));
+            $response->assertSessionHas('sso_error', 'Your account does not have access to this application.');
+            $this->assertGuest();
+            $this->assertDatabaseCount('users', 0);
+        }
+    }
+
+    public function test_unrelated_application_roles_do_not_override_the_it_qr_borrowing_role(): void
+    {
+        $userinfo = $this->userinfo('employee');
+        $userinfo['apps']['ticketing']['role'] = 'admin';
+        $userinfo['apps']['fdcp_grant']['role'] = 'superadmin';
+        $this->fakeSso($userinfo);
+
+        $this->ssoCallback()->assertRedirect(route('home'));
+
+        $this->assertDatabaseHas('users', ['email' => 'sso-user@example.test', 'role' => 'employee']);
     }
 
     public function test_inactive_sso_account_denies_login(): void
@@ -143,7 +169,7 @@ class SsoControllerTest extends TestCase
         ]);
     }
 
-    private function userinfo(string $role): array
+    private function userinfo(mixed $role): array
     {
         return [
             'sub' => 'sso-subject-123',

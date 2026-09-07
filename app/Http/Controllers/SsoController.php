@@ -233,7 +233,7 @@ class SsoController extends Controller
 
         $roleMap = [
             'admin' => 'admin',
-            'user' => 'employee',
+            'employee' => 'employee',
         ];
 
         return [
