@@ -8,5 +8,6 @@ return [
         'redirect' => env('FDCP_ACCOUNTS_REDIRECT_URI'),
         'host' => env('FDCP_ACCOUNTS_BASE_URL'),
         'logout_url' => env('FDCP_SSO_LOGOUT_URL', 'https://sso.fdcp.ph/logout/sso'),
+        'logout_redirect_parameter' => env('FDCP_SSO_LOGOUT_REDIRECT_PARAMETER', 'redirect_uri'),
     ],
 ];

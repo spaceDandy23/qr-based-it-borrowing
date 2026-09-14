@@ -25,6 +25,7 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::get('/auth/callback', [SsoController::class, 'callback'])->name('sso.callback');
+Route::get('/auth/logout-complete', [SsoController::class, 'logoutComplete'])->name('sso.logout-complete');
 
 Route::post('/logout', function () {
     Auth::logout();

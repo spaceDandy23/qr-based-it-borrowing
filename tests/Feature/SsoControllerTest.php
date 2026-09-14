@@ -23,6 +23,8 @@ class SsoControllerTest extends TestCase
             'client_secret' => 'test-secret',
             'redirect' => 'http://localhost/auth/callback',
             'host' => $this->baseUrl,
+            'logout_url' => 'https://sso.test/logout/sso',
+            'logout_redirect_parameter' => 'redirect_uri',
         ]);
     }
 
@@ -117,7 +119,7 @@ class SsoControllerTest extends TestCase
 
             $response = $this->ssoCallback();
 
-            $response->assertRedirect(route('login'));
+            $response->assertRedirect($this->expectedSsoLogoutUrl());
             $response->assertSessionHas('sso_error', 'Your account does not have access to this application.');
             $this->assertGuest();
             $this->assertDatabaseCount('users', 0);
@@ -146,6 +148,81 @@ class SsoControllerTest extends TestCase
         $response = $this->ssoCallback();
 
         $this->assertDenied($response, 'inactive_account');
+    }
+
+    public function test_failed_app_access_clears_temporary_oauth_state_and_redirects_through_sso_logout(): void
+    {
+        $userinfo = $this->userinfo('employee');
+        unset($userinfo['apps']['it_qr_borrowing']);
+        $this->fakeSso($userinfo);
+
+        $response = $this->withSession([
+            'fdcp_sso.state' => 'old-state',
+            'fdcp_sso.code_verifier' => 'old-verifier',
+            'url.intended' => route('borrow'),
+        ])->get(route('sso.callback', [
+            'code' => 'authorization-code',
+            'state' => 'old-state',
+        ]));
+
+        $response->assertRedirect($this->expectedSsoLogoutUrl());
+        $response->assertSessionMissing('fdcp_sso.state');
+        $response->assertSessionMissing('fdcp_sso.code_verifier');
+        $response->assertSessionMissing('url.intended');
+        $response->assertSessionHas('sso_error', 'Your account does not have access to this application.');
+        $this->assertGuest();
+    }
+
+    public function test_failed_login_error_survives_the_sso_logout_return_to_login(): void
+    {
+        $this->fakeSso($this->userinfo('user'));
+        $this->ssoCallback()->assertRedirect($this->expectedSsoLogoutUrl());
+
+        $this->get(route('sso.logout-complete'))->assertRedirect(route('login'));
+        $this->get(route('login'))->assertSee('Your account does not have access to this application.');
+    }
+
+    public function test_new_login_after_failure_generates_fresh_one_time_oauth_values_and_rejects_old_state(): void
+    {
+        $this->fakeSso($this->userinfo('user'));
+        $this->withSession([
+            'fdcp_sso.state' => 'old-state',
+            'fdcp_sso.code_verifier' => 'old-verifier',
+        ])->get(route('sso.callback', [
+            'code' => 'authorization-code',
+            'state' => 'old-state',
+        ]))->assertRedirect($this->expectedSsoLogoutUrl());
+
+        $this->get(route('sso.redirect'))->assertRedirect();
+        $newState = session('fdcp_sso.state');
+        $newVerifier = session('fdcp_sso.code_verifier');
+        $this->assertIsString($newState);
+        $this->assertIsString($newVerifier);
+        $this->assertNotSame('old-state', $newState);
+        $this->assertNotSame('old-verifier', $newVerifier);
+
+        $this->get(route('sso.callback', [
+            'code' => 'authorization-code',
+            'state' => 'old-state',
+        ]))->assertRedirect($this->expectedSsoLogoutUrl());
+    }
+
+    public function test_state_mismatch_and_missing_verifier_remain_rejected(): void
+    {
+        $this->withSession([
+            'fdcp_sso.state' => 'expected-state',
+            'fdcp_sso.code_verifier' => 'verifier',
+        ])->get(route('sso.callback', [
+            'code' => 'authorization-code',
+            'state' => 'wrong-state',
+        ]))->assertRedirect($this->expectedSsoLogoutUrl());
+
+        $this->withSession([
+            'fdcp_sso.state' => 'expected-state',
+        ])->get(route('sso.callback', [
+            'code' => 'authorization-code',
+            'state' => 'expected-state',
+        ]))->assertRedirect($this->expectedSsoLogoutUrl());
     }
 
     public function test_success_log_contains_only_operational_fields_not_the_full_userinfo_payload(): void
@@ -213,7 +290,7 @@ class SsoControllerTest extends TestCase
 
     private function assertDenied($response, string $reason): void
     {
-        $response->assertRedirect(route('login'));
+        $response->assertRedirect($this->expectedSsoLogoutUrl());
         $response->assertSessionHas('sso_error', 'Your account does not have access to this application.');
         $this->assertGuest();
         $this->assertDatabaseCount('users', 0);
@@ -221,5 +298,10 @@ class SsoControllerTest extends TestCase
         Log::shouldHaveReceived('warning')
             ->once()
             ->with('SSO access denied.', ['reason' => $reason]);
+    }
+
+    private function expectedSsoLogoutUrl(): string
+    {
+        return 'https://sso.test/logout/sso?redirect_uri='.urlencode(route('sso.logout-complete'));
     }
 }

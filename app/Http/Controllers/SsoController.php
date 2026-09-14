@@ -205,11 +205,46 @@ class SsoController extends Controller
         }
     }
 
-    private function failLogin(Request $request, string $message): RedirectResponse
+    public function logoutComplete(Request $request): RedirectResponse
     {
-        $request->session()->put('sso_error', $message);
+        $request->session()->reflash();
 
         return redirect()->route('login');
+    }
+
+    private function failLogin(Request $request, string $message): RedirectResponse
+    {
+        Auth::logout();
+        $request->session()->forget([
+            self::SESSION_STATE,
+            self::SESSION_CODE_VERIFIER,
+            'url.intended',
+        ]);
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        $request->session()->flash('sso_error', Str::limit($message, 250));
+
+        return redirect()->away($this->ssoLogoutUrl());
+    }
+
+    private function ssoLogoutUrl(): string
+    {
+        $logoutUrl = config('services.fdcp_accounts.logout_url');
+        $parameter = config('services.fdcp_accounts.logout_redirect_parameter', 'redirect_uri');
+
+        if (! is_string($logoutUrl) || $logoutUrl === '') {
+            throw new \RuntimeException('SSO logout URL is not configured.');
+        }
+
+        if (! is_string($parameter) || $parameter === '') {
+            throw new \RuntimeException('SSO logout redirect parameter is not configured.');
+        }
+
+        $separator = str_contains($logoutUrl, '?') ? '&' : '?';
+
+        return $logoutUrl.$separator.http_build_query([
+            $parameter => route('sso.logout-complete'),
+        ], '', '&', PHP_QUERY_RFC3986);
     }
 
     /**
