@@ -36,7 +36,13 @@ class BorrowingService
                 throw new BorrowingStateException('You already have an active request for this equipment.');
             }
 
+            $startDate = Carbon::parse($attributes['start_date']);
             $endDate = Carbon::parse($attributes['end_date']);
+
+            if ($endDate->lt($startDate)) {
+                throw new BorrowingStateException('The return date cannot be before the needed-from date.');
+            }
+
             if ($endDate->isWeekend()) {
                 $endDate->next(Carbon::MONDAY);
             }
@@ -45,7 +51,7 @@ class BorrowingService
                 'equipment_id' => $equipment->id,
                 'user_id' => $user->id,
                 'purpose' => $attributes['purpose'],
-                'start_date' => $attributes['start_date'],
+                'start_date' => $startDate->toDateString(),
                 'end_date' => $endDate->toDateString(),
                 'status' => 'Pending',
             ])->load('equipment');

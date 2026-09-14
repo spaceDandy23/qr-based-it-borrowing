@@ -50,6 +50,22 @@ class SsoControllerTest extends TestCase
         $this->get(route('home'))->assertRedirect(route('browse'));
     }
 
+    public function test_sso_callback_preserves_the_borrow_entry_intended_destination(): void
+    {
+        $this->fakeSso($this->userinfo('employee'));
+
+        $response = $this->withSession([
+            'fdcp_sso.state' => 'valid-state',
+            'fdcp_sso.code_verifier' => 'valid-code-verifier',
+            'url.intended' => route('borrow'),
+        ])->get(route('sso.callback', [
+            'code' => 'authorization-code',
+            'state' => 'valid-state',
+        ]));
+
+        $response->assertRedirect(route('borrow'));
+    }
+
     public function test_existing_employee_is_promoted_when_sso_returns_admin(): void
     {
         $user = $this->localUser('employee');

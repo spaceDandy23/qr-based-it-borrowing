@@ -195,7 +195,7 @@ class SsoController extends Controller
                 'sso_subject' => is_string($ssoSubject) ? $ssoSubject : null,
             ]);
 
-            return redirect()->route('home');
+            return redirect()->intended(route('home'));
         } catch (\Throwable $e) {
             Log::error('SSO login failed (uncaught error).', [
                 'message' => $e->getMessage(),

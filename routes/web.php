@@ -4,6 +4,7 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\SsoController;
 use App\Livewire\Audit\Index as AuditIndex;
 use App\Livewire\Auth\Login;
+use App\Livewire\Borrow\Index as BorrowIndex;
 use App\Livewire\Browse\Index as BrowseIndex;
 use App\Livewire\Dashboard;
 use App\Livewire\History\Index as HistoryIndex;
@@ -55,6 +56,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 });
 
 Route::middleware(['auth', 'role:employee'])->group(function () {
+    Route::get('/borrow', BorrowIndex::class)->name('borrow');
     Route::get('/browse', BrowseIndex::class)->name('browse');
     Route::get('/my-requests', MyRequestsIndex::class)->name('my-requests');
     Route::get('/history', HistoryIndex::class)->name('history');
